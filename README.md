@@ -33,8 +33,10 @@ Edita `.env` con tus credenciales locales de MariaDB (`DB_DATABASE=cablegest`, `
 php artisan migrate --seed
 ```
 
-Credenciales del administrador semilla (`UsuarioSeeder`):
-- **Correo:** `admin@cablevision.pe`
+Credenciales iniciales semilla (`UsuarioSeeder`):
+- **Administrador:** `admin@cablevision.pe`
+- **Operador:** `operador@cablevision.pe`
+- **Técnico:** `tecnico@cablevision.pe`
 - **Contraseña temporal:** `CableGest2026!` *(configurable antes del seed mediante `ADMIN_SEED_PASSWORD` en `.env`; cámbiala en producción)*.
 
 ### 3. Carga del catálogo desde Excel
@@ -90,11 +92,12 @@ cp .env.testing.example .env.testing
 php artisan test
 ```
 
-Para ejecutar únicamente las pruebas del Sprint 1, Sprint 2 o Sprint 3:
+Para ejecutar únicamente las pruebas por sprint:
 ```bash
 php artisan test tests/Feature/Sprint1Test.php
 php artisan test tests/Feature/Sprint2Test.php
 php artisan test tests/Feature/Sprint3Test.php
+php artisan test tests/Feature/Sprint4Test.php
 ```
 
 Comandos operativos de cobranzas (Sprint 3):
@@ -103,3 +106,9 @@ php artisan pagos:generar-mes
 php artisan pagos:marcar-vencidos
 php artisan recibos:importar ruta/al/archivo.xlsx
 ```
+
+---
+
+## Despliegue en producción y respaldos
+
+Revisa la guía paso a paso en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md) y la plantilla de respaldo diario en [scripts/respaldo_cablegest.sh](scripts/respaldo_cablegest.sh).

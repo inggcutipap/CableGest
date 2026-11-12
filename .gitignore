@@ -1,7 +1,9 @@
 *.log
 *.sql
+*.sql.gz
 *.dump
 *.bak
+/backups
 *.xlsx
 *.xls
 *.docx
