@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CatalogoServicio;
+use App\Support\MigracionHelper;
 use Illuminate\Support\Str;
 
 /**
@@ -33,15 +34,22 @@ class CatalogoClasificador
         if (
             str_contains($texto, 'VENTA DE EQUIPOS')
             || str_contains($texto, 'BATERIA')
+            || str_contains($texto, 'TP LINK')
+            || str_contains($texto, 'ROUTER')
             || preg_match('/\bONUS?\b/', $texto) === 1
         ) {
             return 'equipo';
         }
 
         $tieneInternet = str_contains($texto, 'INTERNET');
-        $tieneTv = str_contains($texto, 'TELEVISION') || preg_match('/\bTV\b/', $texto) === 1;
+        $tieneTv = str_contains($texto, 'TELEVISION')
+            || str_contains($texto, 'TVISION')
+            || str_contains($texto, 'TLEVISION')
+            || str_contains($texto, 'TELVISION')
+            || preg_match('/\bTV\b/', $texto) === 1;
+        $esDuo = preg_match('/\bDUO\b/', $texto) === 1;
 
-        if ($tieneInternet && $tieneTv) {
+        if (($tieneInternet && $tieneTv) || $esDuo) {
             return 'plan_combo';
         }
 
@@ -81,7 +89,7 @@ class CatalogoClasificador
             return null;
         }
 
-        if (preg_match('/(\d+)\s*MBPS/i', $nombre, $coincidencia) === 1) {
+        if (preg_match('/(\d+)\s*(?:MBPS|MG|MB)\b/i', $nombre, $coincidencia) === 1) {
             return (int) $coincidencia[1];
         }
 
@@ -96,6 +104,37 @@ class CatalogoClasificador
         $texto = (string) preg_replace('/\s+/', ' ', $texto);
 
         return trim($texto);
+    }
+
+    public function generarReporteDuplicados(): string
+    {
+        $items = CatalogoServicio::orderBy('codigo_interno')->get();
+        $grupos = $items->groupBy(fn (CatalogoServicio $item): string => $this->normalizarNombre($item->nombre));
+
+        $filas = [];
+        foreach ($grupos as $nombreNormalizado => $grupo) {
+            if ($grupo->count() < 2) {
+                continue;
+            }
+
+            foreach ($grupo as $item) {
+                $filas[] = [
+                    $nombreNormalizado,
+                    $item->id,
+                    $item->codigo_interno,
+                    $item->nombre,
+                    $item->tipo,
+                    number_format((float) $item->precio, 2, '.', ''),
+                    $item->activo ? '1' : '0',
+                ];
+            }
+        }
+
+        return MigracionHelper::escribirCsv(
+            'catalogo_duplicados.csv',
+            ['grupo_normalizado', 'id', 'codigo_interno', 'nombre', 'tipo', 'precio', 'activo'],
+            $filas
+        );
     }
 
     private function normalizarTexto(string $texto): string
