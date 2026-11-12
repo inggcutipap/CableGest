@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\CatalogoServicio;
 use App\Models\Cliente;
 use App\Models\Contrato;
+use App\Models\Pago;
 use App\Models\Venta;
 use App\Observers\AuditoriaObserver;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -31,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         CatalogoServicio::observe(AuditoriaObserver::class);
         Venta::observe(AuditoriaObserver::class);
         Contrato::observe(AuditoriaObserver::class);
+        Pago::observe(AuditoriaObserver::class);
 
         RateLimiter::for('login', function (Request $request): Limit {
             $correo = mb_strtolower((string) $request->input('correo', ''));

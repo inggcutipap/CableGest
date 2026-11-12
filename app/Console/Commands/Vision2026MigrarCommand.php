@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\CatalogoServicio;
 use App\Models\Cliente;
+use App\Models\Contrato;
+use App\Models\Pago;
 use App\Services\CatalogoClasificador;
 use App\Support\MigracionHelper;
 use Illuminate\Console\Command;
@@ -18,9 +20,10 @@ class Vision2026MigrarCommand extends Command
                             {--port=3306 : Puerto de la base vision2026 (o variable LEGACY_DB_PORT)}
                             {--database=vision2026 : Nombre de la base origen (o variable LEGACY_DB_NAME)}
                             {--username= : Usuario de solo lectura (o variable LEGACY_DB_USER)}
-                            {--password= : Clave de conexion (o variable LEGACY_DB_PASS)}';
+                            {--password= : Clave de conexion (o variable LEGACY_DB_PASS)}
+                            {--solo= : Limita la migracion a una etapa: base o pagos}';
 
-    protected $description = 'Migra catalogo (mitm), clientes (ccte) y contratos (regcontratos) desde vision2026 en modo solo lectura.';
+    protected $description = 'Migra catalogo (mitm), clientes (ccte), contratos (regcontratos) y pagos (regrecibos) desde vision2026 en modo solo lectura.';
 
     public function handle(CatalogoClasificador $clasificador): int
     {
@@ -42,17 +45,23 @@ class Vision2026MigrarCommand extends Command
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
 
-        $rechazados = [];
-        $resumen = Model::withoutEvents(function () use ($pdo, $clasificador, &$rechazados): array {
-            $catalogoStats = $this->migrarCatalogo($pdo, $clasificador, $rechazados);
-            $clientesStats = $this->migrarClientes($pdo, $rechazados);
-            $contratosStats = $this->migrarContratos($pdo, $rechazados);
+        $solo = trim((string) ($this->option('solo') ?? ''));
 
-            return [
-                'catalogo' => $catalogoStats,
-                'clientes' => $clientesStats,
-                'contratos' => $contratosStats,
-            ];
+        $rechazados = [];
+        $resumen = Model::withoutEvents(function () use ($pdo, $clasificador, $solo, &$rechazados): array {
+            $resultado = [];
+
+            if ($solo === '' || $solo === 'base') {
+                $resultado['catalogo'] = $this->migrarCatalogo($pdo, $clasificador, $rechazados);
+                $resultado['clientes'] = $this->migrarClientes($pdo, $rechazados);
+                $resultado['contratos'] = $this->migrarContratos($pdo, $rechazados);
+            }
+
+            if ($solo === '' || $solo === 'pagos') {
+                $resultado['pagos'] = $this->migrarPagos($pdo, $rechazados);
+            }
+
+            return $resultado;
         });
 
         $rutaDuplicados = $clasificador->generarReporteDuplicados();
@@ -66,9 +75,16 @@ class Vision2026MigrarCommand extends Command
             $filasRechazos
         );
 
-        $this->info("Catalogo (mitm): {$resumen['catalogo']['procesados']} procesados.");
-        $this->info("Clientes (ccte): {$resumen['clientes']['procesados']} validos procesados, {$resumen['clientes']['rechazados']} rechazados.");
-        $this->info("Contratos (regcontratos): {$resumen['contratos']['procesados']} procesados, {$resumen['contratos']['rechazados']} rechazados.");
+        if (isset($resumen['catalogo'])) {
+            $this->info("Catalogo (mitm): {$resumen['catalogo']['procesados']} procesados.");
+            $this->info("Clientes (ccte): {$resumen['clientes']['procesados']} validos procesados, {$resumen['clientes']['rechazados']} rechazados.");
+            $this->info("Contratos (regcontratos): {$resumen['contratos']['procesados']} procesados, {$resumen['contratos']['rechazados']} rechazados.");
+        }
+
+        if (isset($resumen['pagos'])) {
+            $this->info("Pagos (regrecibos): {$resumen['pagos']['procesados']} insertados, {$resumen['pagos']['omitidos']} ya existentes/omitidos, {$resumen['pagos']['rechazados']} rechazados.");
+        }
+
         $this->line("Reporte de duplicados de catalogo: {$rutaDuplicados}");
         $this->line("Reporte de registros rechazados: {$rutaRechazos}");
 
@@ -296,5 +312,132 @@ class Vision2026MigrarCommand extends Command
         }
 
         return ['procesados' => $procesados, 'rechazados' => $conteoRechazos];
+    }
+
+    /**
+     * Migra recibos PEN/AMR de contratos activos y pagos CAN de 2026.
+     *
+     * @param array<int, array<string, string>> $rechazados
+     * @return array<string, int>
+     */
+    private function migrarPagos(PDO $pdo, array &$rechazados): array
+    {
+        $contratoPorCodigo = Contrato::query()->pluck('id', 'codigo_contrato');
+
+        $periodosExistentes = [];
+        foreach (Pago::query()->whereNotNull('periodo')->get(['contrato_id', 'periodo']) as $pago) {
+            $periodosExistentes[$pago->contrato_id . '|' . $pago->periodo] = true;
+        }
+
+        $recibosExistentes = [];
+        foreach (Pago::query()->where('observaciones', 'like', 'Recibo %')->get(['contrato_id', 'observaciones']) as $pago) {
+            if (preg_match('/^Recibo\s+([^\s]+)/', (string) $pago->observaciones, $coincidencia) === 1) {
+                $recibosExistentes[$pago->contrato_id . '|' . $coincidencia[1]] = true;
+            }
+        }
+
+        $sql = "SELECT r.talm, r.tnumcontrato, r.tnumrecibo, r.tfectra, r.tfecven, r.tsit, "
+            . "r.ttotal, r.tsaldo, r.tdescripcion, r.tupdate "
+            . "FROM regrecibos r "
+            . "INNER JOIN regcontratos rc ON r.talm = rc.talm AND r.tnumcontrato = rc.tnumcontrato "
+            . "WHERE (r.tsit IN ('PEN', 'AMR') AND rc.testado = 'ACTIVO') "
+            . "OR (r.tsit = 'CAN' AND r.tfectra >= '2026-01-01') "
+            . "ORDER BY r.talm, r.tnumcontrato, r.tfectra, r.tnumrecibo";
+
+        $stmt = $pdo->query($sql);
+        $hoy = now()->toDateString();
+        $ahora = now()->toDateTimeString();
+        $lote = [];
+        $procesados = 0;
+        $omitidos = 0;
+        $conteoRechazos = 0;
+
+        while (($fila = $stmt->fetch()) !== false) {
+            $codigoContrato = trim((string) ($fila['talm'] ?? '')) . '-' . trim((string) ($fila['tnumcontrato'] ?? ''));
+            $numRecibo = trim((string) ($fila['tnumrecibo'] ?? ''));
+
+            $contratoId = $contratoPorCodigo->get($codigoContrato);
+            if ($contratoId === null) {
+                $conteoRechazos++;
+                $rechazados[] = [
+                    'tabla' => 'regrecibos',
+                    'referencia' => $codigoContrato . '/' . $numRecibo,
+                    'motivo' => 'Contrato no migrado previamente.',
+                ];
+                continue;
+            }
+
+            if ($numRecibo !== '' && isset($recibosExistentes[$contratoId . '|' . $numRecibo])) {
+                $omitidos++;
+                continue;
+            }
+
+            $tsit = strtoupper(trim((string) ($fila['tsit'] ?? 'PEN')));
+            $montoBruto = $tsit === 'CAN'
+                ? (float) ($fila['ttotal'] ?? 0)
+                : ((float) ($fila['tsaldo'] ?? 0) > 0 ? (float) $fila['tsaldo'] : (float) ($fila['ttotal'] ?? 0));
+
+            if ($montoBruto <= 0) {
+                $omitidos++;
+                continue;
+            }
+
+            $periodo = null;
+            if (preg_match('/^(\d{2})(\d{2})/', $numRecibo, $coincidencia) === 1) {
+                $candidatoPeriodo = '20' . $coincidencia[1] . '-' . $coincidencia[2];
+                $clavePeriodo = $contratoId . '|' . $candidatoPeriodo;
+                if (! isset($periodosExistentes[$clavePeriodo])) {
+                    $periodo = $candidatoPeriodo;
+                    $periodosExistentes[$clavePeriodo] = true;
+                }
+            }
+
+            if ($numRecibo !== '') {
+                $recibosExistentes[$contratoId . '|' . $numRecibo] = true;
+            }
+
+            $fechaVencimiento = MigracionHelper::normalizarFecha($fila['tfecven'] ?? null, $fila['tfectra'] ?? null, $hoy);
+
+            if ($tsit === 'CAN') {
+                $estado = 'pagado';
+                $fechaPago = MigracionHelper::normalizarFecha($fila['tupdate'] ?? null, $fila['tfectra'] ?? null, $fechaVencimiento);
+            } else {
+                $estado = $fechaVencimiento < $hoy ? 'vencido' : 'pendiente';
+                $fechaPago = null;
+            }
+
+            $descripcion = trim((string) ($fila['tdescripcion'] ?? ''));
+            $observaciones = trim('Recibo ' . $numRecibo . ($descripcion !== '' ? " - {$descripcion}" : ''));
+
+            $lote[] = [
+                'contrato_id' => $contratoId,
+                'periodo' => $periodo,
+                'monto' => number_format(round($montoBruto, 2), 2, '.', ''),
+                'fecha_vencimiento' => $fechaVencimiento,
+                'fecha_pago' => $fechaPago,
+                'estado' => $estado,
+                'usuario_cobro_id' => null,
+                'metodo_pago' => $estado === 'pagado' ? 'legacy_vb6' : null,
+                'observaciones' => $observaciones !== '' ? mb_substr($observaciones, 0, 255) : null,
+                'created_at' => $ahora,
+                'updated_at' => $ahora,
+            ];
+            $procesados++;
+
+            if (count($lote) >= 500) {
+                DB::table('pagos')->insert($lote);
+                $lote = [];
+            }
+        }
+
+        if ($lote !== []) {
+            DB::table('pagos')->insert($lote);
+        }
+
+        return [
+            'procesados' => $procesados,
+            'omitidos' => $omitidos,
+            'rechazados' => $conteoRechazos,
+        ];
     }
 }

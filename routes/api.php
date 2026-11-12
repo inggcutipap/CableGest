@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogoController;
 use App\Http\Controllers\Api\ClienteController;
 use App\Http\Controllers\Api\ContratoController;
+use App\Http\Controllers\Api\NotificacionController;
+use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\VentaController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,5 +34,14 @@ Route::middleware('auth:api')->group(function (): void {
     Route::get('/contratos', [ContratoController::class, 'index']);
     Route::get('/contratos/{contrato}', [ContratoController::class, 'show']);
     Route::patch('/contratos/{contrato}/estado', [ContratoController::class, 'actualizarEstado']);
+
+    Route::get('/pagos', [PagoController::class, 'index']);
+    Route::post('/pagos', [PagoController::class, 'store']);
+    Route::post('/pagos/{pago}/registrar', [PagoController::class, 'registrar']);
+    Route::get('/clientes/{cliente}/estado-cuenta', [PagoController::class, 'estadoCuenta']);
+    Route::get('/reportes/morosidad', [PagoController::class, 'morosidad']);
+
+    Route::get('/notificaciones', [NotificacionController::class, 'index']);
+    Route::patch('/notificaciones/{notificacion}/vista', [NotificacionController::class, 'marcarVista']);
 });
 
