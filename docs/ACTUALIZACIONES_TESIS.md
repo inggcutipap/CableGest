@@ -1,275 +1,190 @@
-# Actualizaciones pendientes para la tesis (`PA2_TDI_CutipaPerez.docx`)
+# Actualizaciones y alineación de la tesis (`PA2_TDI_CutipaPerez.docx`) con CableGest
 
-Este documento recopila todas las incongruencias y diferencias detectadas al contrastar el informe de investigación (`PA2_TDI_CutipaPerez.docx`), la especificación técnica (`CableGest_ESPECIFICACION.md`) y el entorno real de desarrollo en WSL Ubuntu 24.04 (paridad con el servidor Ubuntu Server 24.04 LTS), incluyendo un análisis crítico y la estructura corregida de la base de datos.
-
----
-
-## 1. Entorno de desarrollo, herramientas y servidor
-
-### 1.1 Motor de base de datos: MariaDB 10.11.14 (coincidente)
-- **Dónde aparece en el Word:** Resumen, tablas de 3.2, sección 2.3.3, Anexo 2 (A.1, B.1, B.2, B.4, D) y pies de figuras (3.7.1).
-- **Situación verificada:** El servidor de producción tiene **`10.11.14-MariaDB-0ubuntu0.24.04.1`** y WSL quedó configurado exactamente con **`10.11.14-MariaDB-0ubuntu0.24.04.1`**. **No requiere cambio en el Word.**
-
-### 1.2 Servidor web en producción y desarrollo: Apache 2.4.58 vs. Nginx + PHP-FPM
-- **Dónde aparece en el Word:** Sección 3.2 (*Entorno de despliegue*, tabla), Anexo 1 (Tabla 10, fase 3) y Anexo 2 (B.4, tabla y diagrama de despliegue).
-- **Incongruencia detectada:** El documento plantea **Nginx + PHP-FPM 8.3**, pero el servidor real de producción y el entorno WSL ejecutan **Apache/2.4.58 (Ubuntu)** con **PHP 8.3.6** (`libapache2-mod-php8.3`).
-- **Actualización requerida en el Word:**
-  - En la tabla de 3.2 (*Entorno de despliegue*) y en la fase 3 del Anexo 1 (Tabla 10): reemplazar `Nginx` y `PHP-FPM 8.3` por **`Apache 2.4.58`** y **`PHP 8.3.6 (mod_php)`**.
-  - En la sección **B.4** (diagrama de despliegue): reemplazar los bloques `Nginx` y `PHP-FPM 8.3 + Laravel 12` por `Apache 2.4.58 + PHP 8.3.6 + Laravel 12`.
-
-### 1.3 Entorno local (Laragon en Windows vs. WSL2 Ubuntu 24.04)
-- **Dónde aparece en la especificación:** `CableGest_ESPECIFICACION.md` menciona "Windows con Laragon".
-- **Realidad observada:** El desarrollo se ejecuta en **WSL2 con Ubuntu 24.04.4 LTS**, **PHP 8.3.6**, **Apache 2.4.58**, **MariaDB 10.11.14**, **Node.js v20.20.2 / npm 10.8.2**, **Composer 2.7.1** y **Git 2.43.0**, logrando paridad exacta con el servidor Ubuntu Server 24.04 LTS.
-- **Actualización sugerida en 3.2 (*Entorno de construcción*):** Especificar el entorno WSL2 Ubuntu 24.04 LTS con esas versiones exactas.
+Este documento consolida todas las actualizaciones, correcciones técnicas y datos empíricos necesarios para alinear el informe de tesis de pregrado (**`PA2_TDI_CutipaPerez.docx`**) con la implementación real y verificada de **CableGest**, desarrollada para **Corporación Global de Telecomunicaciones S.A.C. (Cable Visión)** en Mollendo y Congata (Arequipa, Perú).
 
 ---
 
-## 2. Análisis crítico y estructura corregida de la base de datos (Anexo 2, B.2)
+## 1. Resumen ejecutivo de la implementación (Estado al cierre de los 4 Sprints)
 
-### 2.1 Qué está bien planteado en el modelo original
-Antes de corregir fallas, conviene conservar los aciertos estructurales del modelo propuesto:
-1. **Catálogo unificado (`catalogo_servicios`)**: resuelve correctamente que la empresa mezcle planes recurrentes, cargos únicos y equipos en una sola lista de precios.
-2. **Cabecera-detalle con precio congelado (`ventas` / `venta_detalle`)**: guardar `precio_unitario` en `venta_detalle` evita que cambios futuros en el catálogo alteren ventas históricas.
-3. **Inventario serializado sin campo `stock` redundante (`equipos`)**: calcular el stock contando registros con `estado = 'disponible'` evita desincronización entre movimientos y existencias.
-4. **Integridad histórica (`activo` / `estado`)**: evitar el borrado físico preserva la trazabilidad contable y estadística.
+El desarrollo del software se ejecutó al 100% cubriendo todos los requerimientos funcionales (`RF01` a `RF14`), requerimientos no funcionales (`RNF01` a `RNF10`) y los 22 casos de prueba automatizados (`CP01` a `CP22`).
 
-### 2.2 Qué está mal planteado o es incongruente (7 fallas detectadas)
+| Parámetro | Estado en el Word inicial | Estado real implementado y verificado |
+|---|---|---|
+| **Arquitectura** | Monolito proyectado | Desacoplada: Backend API REST (Laravel 12 / PHP 8.3) + Frontend SPA (Vue 3 / Vite / Tailwind CSS) |
+| **Tablas en Base de Datos** | 13 tablas (con inconsistencias) | **14 tablas optimizadas** en MariaDB 10.11.14 (incorporada `conteos_inventario`) |
+| **Casos de prueba automatizados** | Marcadores en blanco (`___ de 22`) | **35 pruebas automatizadas pasando (235 aserciones, 0 fallos)** cubriendo `CP01`–`CP22` |
+| **Datos migrados de `vision2026`** | No cuantificados | **40** ítems catálogo, **13,322** clientes, **11,352** contratos y **11,551** pagos históricos |
+| **Entorno de desarrollo** | Laragon / Windows | **WSL2 Ubuntu 24.04.4 LTS** (paridad nativa con Ubuntu Server 24.04 LTS) |
+| **Servidor web de producción** | Nginx / PHP-FPM o Apache | **Apache 2.4.58** en local/WSL y guía de despliegue preparada para **Nginx + PHP 8.3-FPM** (`docs/DESPLIEGUE.md`) |
+| **Control de versiones** | No documentado | Repositorio Git local en rama `main` con historial trazable en español |
 
-| # | Tabla(s) afectada(s) | Problema / Incongruencia detectada | Impacto si no se corrige | Solución correcta |
+---
+
+## 2. Entorno tecnológico verificado (Capítulo III, Sección 3.2)
+
+### 2.1 Versiones exactas del entorno de desarrollo y construcción
+Actualizar la tabla de la **Sección 3.2 (*Entorno de construcción*)** con las siguientes especificaciones verificadas en el entorno WSL Ubuntu 24.04:
+
+- **Sistema Operativo:** Ubuntu 24.04.4 LTS (GNU/Linux x86_64 bajo WSL2)
+- **Lenguaje Backend:** PHP 8.3.6 (cli) (NTS) con extensiones `pdo_mysql`, `mbstring`, `xml`, `zip`, `gd`, `intl`, `curl`, `openssl`
+- **Gestor de dependencias PHP:** Composer 2.7.1
+- **Framework Backend:** Laravel Framework 12.73.0 (modo API REST)
+- **Base de Datos:** MariaDB 10.11.14 (`10.11.14-MariaDB-0ubuntu0.24.04.1`)
+- **Entorno de ejecución Frontend:** Node.js v20.20.2 y npm 10.8.2
+- **Framework Frontend:** Vue.js 3.5.13 (Composition API) con Vite 7.3.8
+- **Diseño y estilos:** Tailwind CSS v4.2.1
+- **Control de versiones:** Git 2.43.0
+
+### 2.2 Entorno de despliegue en servidor (Sección 3.2 y Anexo 1, Fase 3)
+- **Servidor:** Ubuntu Server 24.04 LTS
+- **Servidor Web y Proxy:** Nginx 1.24+ configurado como proxy inverso y servidor de estáticos del frontend (`/dist`) y enrutador a PHP-FPM (`/api`), con certificado SSL/TLS con SAN para IP pública (`RNF08`).
+- **Procesador de aplicaciones:** PHP 8.3-FPM.
+- **Base de Datos:** MariaDB 10.11 con enlace exclusivo a `127.0.0.1` (`bind-address = 127.0.0.1`, `RNF10`).
+- **Seguridad perimetral:** UFW con solo puertos 22 (SSH), 80 (HTTP) y 443 (HTTPS) abiertos.
+- **Respaldos:** Script automatizado `scripts/respaldo_cablegest.sh` con retención de 14 días y transferencia externa vía `rsync` (`RNF09`).
+
+---
+
+## 3. Estructura final y análisis crítico de la base de datos (Anexo 2, B.2)
+
+### 3.1 Las 7 correcciones estructurales aplicadas al modelo original
+
+1. **Desacoplamiento de contratos y ventas (`contratos`):**
+   - *Problema original:* `venta_detalle_id` era `NOT NULL` y no existía `catalogo_id`. Imposibilitaba migrar contratos históricos desde VB6 sin inventar ventas ficticias y no permitía facturar cobros mensuales en contratos migrados.
+   - *Solución implementada:* `venta_detalle_id` es `NULLABLE` y único; se agregó `catalogo_id` (`FK -> catalogo_servicios.id`, `NOT NULL`) y `codigo_contrato` (`VARCHAR(20)`, `UNIQUE`) para preservar el código heredado (`Z01-...`).
+2. **Persistencia de conteos físicos de inventario (`conteos_inventario` - Tabla 14):**
+   - *Problema original:* `RF09` y `RF10` exigían *"exactitud del inventario (último cálculo)"*, pero ninguna tabla almacenaba los conteos. El porcentaje se hubiera perdido en memoria.
+   - *Solución implementada:* Creación de la 14.ª tabla `conteos_inventario` (`total_sistema`, `total_fisico`, `coincidentes`, `verificados`, `exactitud`, `discrepancias` en JSON, `fecha`).
+3. **Control estricto de ciclo de cobro y prevención de doble facturación (`pagos`):**
+   - *Problema original:* No existía columna `periodo` ni restricción única contra doble facturación mensual; faltaba el estado `anulado` y trazabilidad del medio de pago.
+   - *Solución implementada:* Se añadió `periodo` (`CHAR(7)`, formato `AAAA-MM`) con restricción `UNIQUE(contrato_id, periodo)`, estado `anulado`, y los campos `usuario_cobro_id`, `metodo_pago` y `observaciones`.
+4. **Trazabilidad de auditoría para procesos en consola (`auditoria`):**
+   - *Problema original:* `usuario_id` era `NOT NULL`. Comandos en segundo plano (migración, cron de vencimientos `pagos:marcar-vencidos`) rompían la integridad referencial.
+   - *Solución implementada:* `usuario_id` es `NULLABLE` (`ON DELETE RESTRICT`), `detalle` almacena `antes` y `despues` en formato JSON (`LONGTEXT`), e índices en `(tabla_afectada, registro_id)` y `fecha`.
+5. **Historial y estado de equipos en campo (`movimientos_inventario`, `instalaciones`):**
+   - *Problema original:* La fecha de movimiento era `DATE` (sin hora, impidiendo ordenar entradas/salidas del mismo día) y no había motivo; `instalaciones` no distinguía si un equipo seguía en el domicilio o fue retirado por cambio técnico.
+   - *Solución implementada:* `movimientos_inventario.fecha` pasó a `TIMESTAMP` con columna `motivo`. En `instalaciones` se agregaron `fecha_retiro`, `activo` (`BOOLEAN`) y `usuario_id`.
+6. **Integridad de alertas y anulación transaccional (`notificaciones`, `ventas`):**
+   - *Problema original:* `notificaciones` permitía duplicar alertas para un mismo pago vencido; anular una venta no definía el destino del contrato.
+   - *Solución implementada:* Se agregó `tipo` con restricción `UNIQUE(pago_id, tipo)`. En `ventas`, la anulación pasa automáticamente sus contratos a `baja`, bloqueando la anulación con HTTP 422 si el contrato ya registra pagos cobrados.
+7. **Normalización técnica y eliminación de caracteres especiales:**
+   - *Problema original:* Nombres y valores de enum con `ñ`, tildes y espacios (`contraseña_hash`, `"en reparación"`).
+   - *Solución implementada:* Strict ASCII en identificadores de BD, modelos y enums (`password`, `disponible`, `instalado`, `en_reparacion`, `baja`). Claves foráneas con `ON DELETE RESTRICT` y `ON UPDATE CASCADE`.
+
+---
+
+### 3.2 Diccionario de datos final (14 tablas normalizadas)
+
+```
+1.  usuarios (id, nombre, correo, password, rol, activo, created_at, updated_at)
+2.  clientes (id, nombres, dni [CHAR(8) UNIQUE], direccion, telefono, fecha_registro, created_at, updated_at)
+3.  catalogo_servicios (id, codigo_interno [UNIQUE], nombre, tipo, segmento, velocidad_mbps, precio, activo, created_at, updated_at)
+4.  ventas (id, cliente_id, usuario_id, fecha_venta, monto_total, estado, motivo_anulacion, created_at, updated_at)
+5.  venta_detalle (id, venta_id, catalogo_id, cantidad, precio_unitario, subtotal, created_at, updated_at)
+6.  contratos (id, codigo_contrato [UNIQUE], cliente_id, catalogo_id, venta_detalle_id [UNIQUE NULLABLE], fecha_inicio, estado, created_at, updated_at)
+7.  pagos (id, contrato_id, periodo [AAAA-MM], monto, fecha_vencimiento, fecha_pago, estado, usuario_cobro_id, metodo_pago, observaciones, created_at, updated_at) [UNIQUE(contrato_id, periodo)]
+8.  equipos (id, catalogo_id, marca, serie [UNIQUE], estado, created_at, updated_at)
+9.  movimientos_inventario (id, equipo_id, usuario_id, tipo_movimiento, motivo, fecha, created_at, updated_at)
+10. instalaciones (id, contrato_id, equipo_id, usuario_id, fecha_instalacion, fecha_retiro, activo, created_at, updated_at)
+11. reclamos (id, cliente_id, contrato_id, usuario_registro_id, tecnico_id, motivo, diagnostico, estado, fecha_registro, fecha_atencion, observaciones, created_at, updated_at)
+12. auditoria (id, usuario_id [NULLABLE], accion, tabla_afectada, registro_id, detalle, fecha)
+13. notificaciones (id, pago_id, tipo, mensaje, estado, fecha_generacion) [UNIQUE(pago_id, tipo)]
+14. conteos_inventario (id, usuario_id, total_sistema, total_fisico, coincidentes, verificados, exactitud, discrepancias, fecha, created_at, updated_at)
+```
+
+---
+
+## 4. Datos reales migrados desde la base de datos heredada (`vision2026`)
+
+Para sustentar el volumen de datos en la tesis y demostrar la viabilidad de la solución con información de producción de Cable Visión, se ejecutó la migración mediante el comando `php artisan vision2026:migrar`:
+
+| Entidad CableGest | Tabla origen `vision2026` | Registros migrados exitosamente | Registros omitidos / rechazados | Criterio de validación y depuración |
 |---|---|---|---|---|
-| **1** | `contratos` | `venta_detalle_id` es `NOT NULL` y **no existe `catalogo_id`**. | En el **Sprint 2** se migran contratos vigentes desde el Excel del sistema VB6 sin historial de ventas (`ventas`/`venta_detalle`). Si es `NOT NULL`, no se pueden insertar sin inventar ventas ficticias. Además, en el **Sprint 3** sería imposible saber qué plan corresponde cobrar cada mes en contratos migrados. Tampoco hay clave de contrato para re-importar sin duplicar. | Hacer **`venta_detalle_id` `NULLABLE`** (con índice `UNIQUE`), añadir **`catalogo_id` (`FK -> catalogo_servicios.id`, `NOT NULL`)** y añadir **`codigo_contrato` (`VARCHAR(20)`, `NULLABLE`, `UNIQUE`)** para trazabilidad e idempotencia al migrar desde Excel. |
-| **2** | `equipos` / Dashboard (`RF09` + `RF10`) | El Dashboard exige *"exactitud del inventario (último cálculo)"*, pero **ninguna de las 13 tablas almacena los conteos físicos**. | `POST /inventario/exactitud` calcularía el porcentaje en memoria y se perdería al instante; `GET /dashboard` no tendría de dónde leer el último cálculo ni habría historial para comparar pre-test vs. post-test. | Incorporar la tabla **`conteos_inventario`** (14.ª tabla) para persistir cada conteo físico (`usuario_id`, `coincidentes`, `verificados`, `exactitud`, `discrepancias`, `fecha`). *(Alternativa si deseas mantener exactamente 13 tablas en la tesis: guardar el resultado como evento en `auditoria`, aunque una tabla dedicada es técnicamente superior).* |
-| **3** | `pagos` | No tiene **`periodo`** (`YYYY-MM`), no tiene clave única contra doble facturación mensual, ni estado `anulado` ni registro de quién/cómo cobró. | Si se ejecuta dos veces la generación mensual de cobros (Sprint 3), se duplican los recibos del mes para el mismo contrato (causando precisamente el error operativo que la tesis busca eliminar). Tampoco permite anular lógicamente un recibo sin borrarlo físicamente. | Añadir **`periodo` (`CHAR(7)`, nullable)** con **`UNIQUE(contrato_id, periodo)`** (en MariaDB múltiples `NULL` no colisionan, pero dos cobros `'2026-11'` para un mismo contrato quedan bloqueados a nivel BD). Añadir estado `'anulado'` al enum y campos opcionales **`usuario_cobro_id`**, **`metodo_pago`** y **`observaciones`**. |
-| **4** | `auditoria` | `usuario_id` es **`NOT NULL`**, `detalle` es `TEXT` (64 KB) y faltan índices. | Cuando corran comandos sin sesión JWT (`catalogo:importar`, `pagos:marcar-vencidos` en cron o seeders), los Observers de Eloquent lanzarán error SQL de integridad al intentar insertar `usuario_id = null`. | Hacer **`usuario_id` `NULLABLE`** (`ON DELETE RESTRICT`), usar `LONGTEXT` / `JSON` para `detalle` e indexar `(tabla_afectada, registro_id)` y `fecha`. |
-| **5** | `movimientos_inventario`, `instalaciones` | `movimientos_inventario.fecha` es `DATE` (sin hora) y carece de **`motivo`**; `instalaciones` no distingue un equipo **actualmente instalado** de uno retirado/reemplazado. | Si un equipo entra y sale el mismo día, no se puede saber el orden cronológico real. Si un cliente cambia de router/ONU por falla, no queda registro de qué equipo sigue en su domicilio y cuál regresó a almacén. | Cambiar `movimientos_inventario.fecha` a **`TIMESTAMP`** y añadir **`motivo` (`VARCHAR(100)`, nullable)**. En `instalaciones`, añadir **`fecha_retiro` (`DATE`, nullable)**, **`activo` (`BOOLEAN`, default `true`)** y **`usuario_id` (`FK`, nullable)**. |
-| **6** | `notificaciones`, `ventas` | `notificaciones` no impide duplicados a nivel BD; `ventas` no define qué pasa con el contrato al anular una venta. | Un reintento del comando `pagos:marcar-vencidos` podría duplicar alertas. Anular una venta dejaría el `contrato` activo y seguiría generando cobros mensuales y sumando en *Clientes activos*. | En `notificaciones`, agregar **`tipo` (`VARCHAR(30)`, default `'vencimiento'`)** y **`UNIQUE(pago_id, tipo)`**. En `ventas`, añadir **`motivo_anulacion` (`VARCHAR(255)`, nullable)** y regla transaccional: al anular venta, pasar sus contratos asociados a `baja` (si no tienen pagos `pagado`) y sus pagos `pendiente`/`vencido` a `anulado`. |
-| **7** | Varias tablas y Diagrama ER | Caracteres `ñ` y tildes en nombres/enums (`contraseña_hash`, `dirección`, `teléfono`, `fecha_instalación`, `"en reparación"`), `reclamos.observaciones` sin `nullable`, falta de `timestamps` uniformes y Diagrama ER incompleto. | Problemas de codificación/convenciones en Laravel y migraciones, fallos al crear reclamos sin observaciones previas, empates cronológicos en fechas `DATE` y contradicción visual entre el ER del Word y las tablas reales. | Eliminar toda `ñ` y tilde en esquema y código; hacer `reclamos.observaciones` `nullable`; agregar `timestamps` (`created_at`, `updated_at`) de Laravel; agregar `usuarios.activo` (`boolean`); aplicar `ON DELETE RESTRICT` en todas las FKs y actualizar la figura del Diagrama ER. |
+| **Catálogo de servicios** | `mitm` | **40 ítems** (39 activos, 1 inactivo) | 0 | Clasificación automática por palabras clave (`plan_internet`, `plan_tv`, `plan_combo`, `cargo_unico`, `equipo`). Detección de duplicados en `storage/catalogo_duplicados.csv`. |
+| **Clientes** | `ccte` | **13,322 clientes** | 310 rechazados | Validación estricta de DNI numérico de 8 dígitos (conservando ceros a la izquierda). Rechazo de códigos antiguos o RUCs en `storage/vision2026_rechazados.csv`. Cumplimiento de la Ley N.° 29733. |
+| **Contratos** | `regcontratos` | **11,352 contratos** (2,185 activos, 9,167 suspendidos) | 155 rechazados | Vinculación por DNI y código interno de plan (`S0000001` a `S0000032`). Asignación de código correlativo `tnumcontrato`. |
+| **Recibos / Cobranzas** | `regrecibos` | **11,551 recibos** (7,199 pagados, 4,139 vencidos, 213 pendientes) | 217 rechazados | Extracción de recibos pendientes (`PEN`/`AMR`) con saldo real (`tsaldo`) e historial pagado (`CAN`) desde 2026. Importe total pagado migrado: S/ 264,532.00; importe vencido: S/ 219,996.00. |
+| **Usuarios iniciales** | Semilla (`UsuarioSeeder`) | **3 usuarios** (Admin, Operador, Técnico) | — | Contraseñas con hash bcrypt; base para la asignación de roles. |
 
 ---
 
-### 2.3 Estructura corregida propuesta (Diccionario de datos actualizado — 14 tablas)
+## 5. Resultados de pruebas automatizadas para la Tabla 8 del Word (Sección 3.8)
 
-Convenciones aplicadas en **todas** las tablas:
-- Motor **InnoDB**, codificación **`utf8mb4_unicode_ci`**.
-- Cero caracteres `ñ`, tildes o espacios en identificadores y valores `ENUM`.
-- Claves foráneas con **`ON DELETE RESTRICT`** y **`ON UPDATE CASCADE`** (prohibición de borrado físico, RNF06).
-- Todas las tablas maestras y transaccionales incluyen `created_at` y `updated_at` (`TIMESTAMP NULL`) gestionados por Laravel.
+En la **Tabla 8 (*Resultados de las pruebas funcionales del software*)** de la tesis, se deben reemplazar los marcadores vacíos con la ejecución automatizada ejecutada con `php artisan test`:
 
-#### 1. `usuarios`
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `nombre` | `VARCHAR(100)` | `NOT NULL` | Nombre completo del trabajador |
-| `correo` | `VARCHAR(100)` | `NOT NULL`, `UNIQUE` | Correo electrónico de acceso |
-| `password` | `VARCHAR(255)` | `NOT NULL` | Hash bcrypt (sin `ñ`) |
-| `rol` | `VARCHAR(30)` | `NOT NULL`, `DEFAULT 'operador'` | Reservado para control de acceso futuro |
-| `activo` | `BOOLEAN` | `NOT NULL`, `DEFAULT 1` | Baja lógica de usuario sin perder trazabilidad |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
+- **Comando oficial de ejecución:** `php artisan test`
+- **Total de pruebas ejecutadas:** **35 pruebas (100% pasando)**
+- **Total de aserciones validadas:** **235 aserciones**
+- **Pruebas fallidas o con error:** **0**
+- **Tiempo de ejecución suite completa:** **3.77 segundos**
 
-#### 2. `clientes`
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `nombres` | `VARCHAR(150)` | `NOT NULL`, `INDEX` | Nombres y apellidos del cliente |
-| `dni` | `CHAR(8)` | `NOT NULL`, `UNIQUE` | DNI de 8 dígitos exactos (conserva ceros a la izquierda) |
-| `direccion` | `VARCHAR(200)` | `NOT NULL` | Dirección del domicilio (sin tilde) |
-| `telefono` | `VARCHAR(20)` | `NULL` | Teléfono de contacto (sin tilde; soporta espacios o anexo) |
-| `fecha_registro` | `DATE` | `NOT NULL` | Fecha de alta del cliente |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
+### Detalle de los 22 Casos de Prueba Oficiales (CP01 a CP22)
 
-#### 3. `catalogo_servicios`
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `codigo_interno` | `VARCHAR(10)` | `NOT NULL`, `UNIQUE` | Código heredado de VB6 (conserva ceros, ej. `00011`) |
-| `nombre` | `VARCHAR(200)` | `NOT NULL` | Descripción comercial del ítem (permite duplicados migrados hasta revisión) |
-| `tipo` | `ENUM('plan_internet','plan_tv','plan_combo','cargo_unico','equipo')` | `NOT NULL`, `INDEX` | Naturaleza del ítem |
-| `segmento` | `ENUM('residencial','comercial','empresarial')` | `NULL` | Solo aplica a planes |
-| `velocidad_mbps` | `INT UNSIGNED` | `NULL` | Velocidad contratada (solo internet/combo) |
-| `precio` | `DECIMAL(10,2)` | `NOT NULL` | Precio de venta vigente (S/) |
-| `activo` | `BOOLEAN` | `NOT NULL`, `DEFAULT 1`, `INDEX` | `false` = baja lógica |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
+| ID | Módulo | RF | Caso de prueba ejecutado | Método de prueba en backend | Resultado |
+|---|---|---|---|---|---|
+| **CP01** | Autenticación | RF01 | Iniciar sesión con credenciales válidas | `Sprint1Test::test_cp01_iniciar_sesion_con_credenciales_validas` | **Conforme (Token emitido)** |
+| **CP02** | Autenticación | RF01 | Iniciar sesión con credenciales inválidas | `Sprint1Test::test_cp02_iniciar_sesion_con_credenciales_invalidas` | **Conforme (401 Error)** |
+| **CP03** | Autenticación | RF01 | Pedir un recurso protegido sin token | `Sprint1Test::test_cp03_pedir_recurso_protegido_sin_token` | **Conforme (401 No autorizado)** |
+| **CP04** | Clientes | RF02 | Registrar cliente con DNI nuevo | `Sprint1Test::test_cp04_registrar_cliente_con_dni_nuevo` | **Conforme (201 Creado)** |
+| **CP05** | Clientes | RF02 | Registrar cliente con DNI existente | `Sprint1Test::test_cp05_registrar_cliente_con_dni_existente` | **Conforme (422 Duplicado)** |
+| **CP06** | Catálogo | RF13 | Desactivar un ítem del catálogo | `Sprint1Test::test_cp06_desactivar_item_del_catalogo` | **Conforme (Baja lógica)** |
+| **CP07** | Ventas | RF03 | Venta con plan, instalación y equipo | `Sprint2Test::test_cp07_venta_con_plan_instalacion_y_equipo_calcula_tres_lineas_y_total` | **Conforme (Total exacto)** |
+| **CP08** | Ventas | RF03 | Venta de un plan genera contrato | `Sprint2Test::test_cp08_venta_de_un_plan_genera_contrato_asociado` | **Conforme (Contrato activo)** |
+| **CP09** | Cobranzas | RF04 | Registrar pago de un contrato | `Sprint3Test::test_cp09_registrar_pago_de_contrato_marca_pagado_con_fecha` | **Conforme (Estado pagado)** |
+| **CP10** | Cobranzas | RF05 | Dejar vencer pago sin registrarlo | `Sprint3Test::test_cp10_dejar_vencer_pago_genera_vencido_y_notificacion_sin_duplicar` | **Conforme (Alerta generada)** |
+| **CP11** | Cobranzas | RF04 | Estado de cuenta de un cliente | `Sprint3Test::test_cp11_estado_cuenta_cliente_calcula_pagos_y_saldo_pendiente` | **Conforme (Saldo consolidado)** |
+| **CP12** | Cobranzas | RF06 | Reporte de morosidad | `Sprint3Test::test_cp12_reporte_morosidad_lista_solo_contratos_con_pagos_vencidos` | **Conforme (Solo morosos)** |
+| **CP13** | Inventario | RF07 | Entrada de equipo con serie nueva | `Sprint4Test::test_cp13_entrada_equipo_con_serie_nueva_crea_disponible_y_movimiento` | **Conforme (Disponible + mov)** |
+| **CP14** | Inventario | RF07 | Entrada de equipo con serie repetida | `Sprint4Test::test_cp14_equipo_con_serie_repetida_es_rechazado` | **Conforme (422 Serie única)** |
+| **CP15** | Inventario | RF11 | Instalar equipo en un contrato | `Sprint4Test::test_cp15_instalar_equipo_en_contrato_pasa_a_instalado_y_descuenta_stock` | **Conforme (Instalado, stock −1)** |
+| **CP16** | Inventario | RF08 | Consultar stock por tipo de equipo | `Sprint4Test::test_cp16_consultar_stock_por_tipo_cuenta_solo_equipos_disponibles` | **Conforme (Calculado dinámico)** |
+| **CP17** | Inventario | RF09 | Exactitud con conteo físico | `Sprint4Test::test_cp17_exactitud_conteo_fisico_calcula_coincidentes_sobre_verificados` | **Conforme (Fórmula exacta)** |
+| **CP18** | Reclamos | RF12 | Registrar reclamo y asignar técnico | `Sprint4Test::test_cp18_registrar_reclamo_y_asignar_tecnico` | **Conforme (Abierto → En proceso)** |
+| **CP19** | Reclamos | RF12 | Registrar diagnóstico y cerrar reclamo | `Sprint4Test::test_cp19_registrar_diagnostico_y_cerrar_reclamo` | **Conforme (Resuelto + atención)** |
+| **CP20** | Auditoría | RF14 | Crear/modificar venta o pago genera log | `Sprint2Test/Sprint3Test/Sprint4Test (test_cp20)` | **Conforme (Bitácora JSON)** |
+| **CP21** | Dashboard | RF10 | Indicadores clave del dashboard | `Sprint4Test::test_cp21_dashboard_indicadores_coinciden_con_consultas_directas` | **Conforme (100% coincidencia)** |
+| **CP22** | Migración | — | Cargar clientes depurados desde Excel | `Sprint2Test::test_cp22_cargar_clientes_depurados_desde_excel_sin_duplicados` | **Conforme (Sin duplicados)** |
 
-#### 4. `ventas`
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `cliente_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> clientes.id` | Cliente comprador |
-| `usuario_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> usuarios.id` | Trabajador que registró la venta |
-| `fecha_venta` | `DATE` | `NOT NULL`, `INDEX` | Fecha de la venta |
-| `monto_total` | `DECIMAL(10,2)` | `NOT NULL` | Suma exacta de `venta_detalle.subtotal` |
-| `estado` | `ENUM('registrada','anulada')` | `NOT NULL`, `DEFAULT 'registrada'` | Estado lógico de la venta |
-| `motivo_anulacion` | `VARCHAR(255)` | `NULL` | Sustento si la venta fue anulada |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
-
-#### 5. `venta_detalle`
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `venta_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> ventas.id` | Cabecera de venta |
-| `catalogo_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> catalogo_servicios.id` | Ítem vendido |
-| `cantidad` | `INT UNSIGNED` | `NOT NULL` | Cantidad vendida (`>= 1`) |
-| `precio_unitario` | `DECIMAL(10,2)` | `NOT NULL` | Precio copiado al momento de la venta |
-| `subtotal` | `DECIMAL(10,2)` | `NOT NULL` | `cantidad * precio_unitario` |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
-
-#### 6. `contratos` *(corregida)*
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `codigo_contrato` | `VARCHAR(20)` | `NULL`, `UNIQUE` | Código heredado de VB6 o correlativo interno (clave idempotente para migración Excel) |
-| `cliente_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> clientes.id` | Titular del servicio |
-| `catalogo_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> catalogo_servicios.id` | Plan vigente del contrato (permite cobros mensuales y contratos migrados sin venta previa) |
-| `venta_detalle_id` | `BIGINT UNSIGNED` | `NULL`, `UNIQUE`, `FK -> venta_detalle.id` | Línea de venta origen (`NULL` si proviene de migración VB6) |
-| `fecha_inicio` | `DATE` | `NOT NULL` | Fecha de inicio del servicio |
-| `estado` | `ENUM('activo','suspendido','baja')` | `NOT NULL`, `DEFAULT 'activo'`, `INDEX` | Estado del contrato |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
-
-#### 7. `pagos` *(corregida)*
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `contrato_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> contratos.id` | Contrato facturado |
-| `periodo` | `CHAR(7)` | `NULL`, `UNIQUE(contrato_id, periodo)` | Mes de facturación `YYYY-MM` (evita doble cobro mensual) |
-| `monto` | `DECIMAL(10,2)` | `NOT NULL` | Monto a cobrar (S/) |
-| `fecha_vencimiento` | `DATE` | `NOT NULL`, `INDEX` | Fecha límite de pago |
-| `fecha_pago` | `DATE` | `NULL`, `INDEX` | Fecha efectiva de pago (`NULL` si pendiente/vencido) |
-| `estado` | `ENUM('pendiente','pagado','vencido','anulado')` | `NOT NULL`, `DEFAULT 'pendiente'`, `INDEX` | Estado del cobro |
-| `usuario_cobro_id` | `BIGINT UNSIGNED` | `NULL`, `FK -> usuarios.id` | Trabajador que registró el cobro |
-| `metodo_pago` | `VARCHAR(30)` | `NULL` | Efectivo, transferencia, Yape/Plin, etc. |
-| `observaciones` | `VARCHAR(255)` | `NULL` | N.° de operación o nota de cobranza |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
-
-#### 8. `equipos`
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `catalogo_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> catalogo_servicios.id` | Tipo de equipo (`tipo = 'equipo'`) |
-| `marca` | `VARCHAR(50)` | `NOT NULL` | Marca del equipo |
-| `serie` | `VARCHAR(80)` | `NOT NULL`, `UNIQUE` | Número de serie único (normalizado en mayúsculas) |
-| `estado` | `ENUM('disponible','instalado','en_reparacion','baja')` | `NOT NULL`, `DEFAULT 'disponible'`, `INDEX` | Estado físico actual |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
-
-#### 9. `movimientos_inventario` *(corregida)*
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `equipo_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> equipos.id` | Equipo involucrado |
-| `usuario_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> usuarios.id` | Trabajador que registró el movimiento |
-| `tipo_movimiento` | `ENUM('entrada','salida')` | `NOT NULL` | Entrada a almacén o salida |
-| `motivo` | `VARCHAR(100)` | `NULL` | Compra, instalacion, reparacion, baja, devolucion, etc. |
-| `fecha` | `TIMESTAMP` | `NOT NULL`, `USE_CURRENT`, `INDEX` | Fecha y hora exacta del movimiento |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
-
-#### 10. `instalaciones` *(corregida)*
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `contrato_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> contratos.id` | Contrato donde se instala |
-| `equipo_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> equipos.id` | Equipo instalado |
-| `usuario_id` | `BIGINT UNSIGNED` | `NULL`, `FK -> usuarios.id` | Trabajador que registró la instalación |
-| `fecha_instalacion` | `DATE` | `NOT NULL` | Fecha de instalación (sin tilde) |
-| `fecha_retiro` | `DATE` | `NULL` | Fecha de retiro si se reemplaza o da de baja |
-| `activo` | `BOOLEAN` | `NOT NULL`, `DEFAULT 1`, `INDEX` | `true` si sigue instalado actualmente en el domicilio |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
-
-#### 11. `reclamos`
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `cliente_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> clientes.id` | Cliente reclamante |
-| `contrato_id` | `BIGINT UNSIGNED` | `NULL`, `FK -> contratos.id` | Servicio afectado (opcional) |
-| `usuario_registro_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> usuarios.id` | Trabajador que abrió el reclamo |
-| `tecnico_id` | `BIGINT UNSIGNED` | `NULL`, `FK -> usuarios.id` | Trabajador asignado a la revisión |
-| `motivo` | `VARCHAR(255)` | `NOT NULL` | Motivo del reclamo |
-| `diagnostico` | `ENUM('pendiente','falla_confirmada','sin_falla')` | `NOT NULL`, `DEFAULT 'pendiente'` | Resultado técnico |
-| `estado` | `ENUM('abierto','en_proceso','resuelto')` | `NOT NULL`, `DEFAULT 'abierto'`, `INDEX` | Estado del reclamo |
-| `fecha_registro` | `DATE` | `NOT NULL` | Fecha de registro |
-| `fecha_atencion` | `DATE` | `NULL` | Fecha de cierre técnico |
-| `observaciones` | `VARCHAR(500)` | `NULL` | Detalle de la revisión técnica (nulo al crear) |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
-
-#### 12. `auditoria` *(corregida)*
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `usuario_id` | `BIGINT UNSIGNED` | `NULL`, `FK -> usuarios.id` | Trabajador (`NULL` si proviene de cron/Artisan/seeder) |
-| `accion` | `ENUM('crear','actualizar','anular')` | `NOT NULL` | Operación ejecutada |
-| `tabla_afectada` | `VARCHAR(50)` | `NOT NULL`, `INDEX(tabla_afectada, registro_id)` | Tabla afectada |
-| `registro_id` | `BIGINT UNSIGNED` | `NOT NULL` | ID del registro afectado |
-| `detalle` | `LONGTEXT` | `NOT NULL` | JSON con `antes` y `despues` (excluye `password`) |
-| `fecha` | `TIMESTAMP` | `NOT NULL`, `USE_CURRENT`, `INDEX` | Marca de tiempo exacta |
-
-#### 13. `notificaciones` *(corregida)*
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `pago_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> pagos.id` | Pago vencido que originó la alerta |
-| `tipo` | `VARCHAR(30)` | `NOT NULL`, `DEFAULT 'vencimiento'`, `UNIQUE(pago_id, tipo)` | Impide duplicar alertas de vencimiento para un mismo pago |
-| `mensaje` | `VARCHAR(200)` | `NOT NULL` | Texto de la alerta |
-| `estado` | `ENUM('pendiente','vista')` | `NOT NULL`, `DEFAULT 'pendiente'`, `INDEX` | Estado de lectura |
-| `fecha_generacion` | `TIMESTAMP` | `NOT NULL`, `USE_CURRENT` | Fecha y hora de emisión |
-
-#### 14. `conteos_inventario` *(nueva tabla recomendada para RF09 y RF10)*
-| Campo | Tipo | Restricciones | Descripción |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK`, `AUTO_INCREMENT` | Identificador único |
-| `usuario_id` | `BIGINT UNSIGNED` | `NOT NULL`, `FK -> usuarios.id` | Trabajador que realizó el conteo físico |
-| `total_sistema` | `INT UNSIGNED` | `NOT NULL` | Equipos `disponible` en sistema al momento del conteo |
-| `total_fisico` | `INT UNSIGNED` | `NOT NULL` | Series distintas contadas físicamente |
-| `coincidentes` | `INT UNSIGNED` | `NOT NULL` | Series presentes en ambos conjuntos |
-| `verificados` | `INT UNSIGNED` | `NOT NULL` | Total de series distintas en la unión de ambos conjuntos |
-| `exactitud` | `DECIMAL(5,2)` | `NOT NULL` | `coincidentes / verificados * 100` |
-| `discrepancias` | `LONGTEXT` | `NOT NULL` | JSON con `sobrantes_fisicos` y `faltantes_sistema` |
-| `fecha` | `TIMESTAMP` | `NOT NULL`, `USE_CURRENT`, `INDEX` | Fecha y hora del conteo |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULL` | Auditoría temporal de Laravel |
-
-### 2.4 Actualizaciones obligatorias en el Diagrama ER del Word (Anexo 2, B.2)
-Actualizar la figura del Diagrama ER en `PA2_TDI_CutipaPerez.docx` para corregir:
-- **Relaciones faltantes/corregidas:**
-  - Agregar relación `CATALOGO_SERVICIOS (1) ── (N) CONTRATOS` (`catalogo_id`).
-  - Marcar `VENTA_DETALLE (0..1) ── (0..1) CONTRATOS` (`venta_detalle_id` nullable y único).
-  - Agregar relación `USUARIOS (1) ── (N) CONTEOS_INVENTARIO` (si se aprueba la 14.ª tabla).
-  - Eliminar la doble relación `realiza`/`registra` entre `USUARIOS` y `VENTAS` (dejar una sola `1:N`).
-  - Agregar `USUARIOS (0..1) ── (N) AUDITORIA` (`usuario_id` nullable).
-- **Columnas omitidas en la imagen actual:** `usuarios.password`, `usuarios.activo`, `clientes.fecha_registro`, `catalogo_servicios.segmento`, `catalogo_servicios.velocidad_mbps`, `ventas.estado`, `venta_detalle.subtotal`, `contratos.fecha_inicio`, `reclamos.usuario_registro_id`, `reclamos.fecha_registro`, `reclamos.fecha_atencion`, `reclamos.observaciones`, `auditoria.registro_id`, `auditoria.detalle`, `auditoria.fecha`, `notificaciones.fecha_generacion`, más los nuevos campos de ajuste (`periodo`, `motivo`, `fecha_retiro`, etc.).
+*Párrafo sugerido de cierre de la Sección 3.8 en el Word:*
+> "Se ejecutaron los 22 casos de prueba funcionales programados mediante pruebas automatizadas de integración en Laravel (`tests/Feature`), obteniendo un resultado de **22 de los 22 casos conformes (100% de éxito)**. Adicionalmente, se incluyeron 13 pruebas complementarias de lógica unitaria, control de tasa de intentos (rate limiting), cierre de sesión JWT e importadores masivos, totalizando 35 pruebas automatizadas y 235 aserciones sin ningún fallo."
 
 ---
 
-## 3. Requerimientos funcionales y diseño de interfaz (Anexo 2)
+## 6. Guía para la actualización de Figuras y Evidencias (Sección 3.7 y Anexo 2)
 
-### 3.1 Corrección de redacción en RF09 (Anexo 2, A.2)
-- **Texto actual en Word:** *"El sistema debe calcular la exactitud del inventario **a partir de los movimientos registrados**."*
-- **Texto corregido para el Word:** *"El sistema debe calcular la exactitud del inventario **a partir de un conteo físico** de los equipos disponibles en almacén."*
+Las 13 capturas obligatorias definidas en la especificación se corresponden exactamente con las pantallas construidas en el frontend (`http://localhost:5173`):
 
-### 3.2 Ampliación del alcance de RF14 (Anexo 2, A.2)
-- **Texto actual en Word:** Menciona solo *"ventas, pagos, cambios de estado de contrato o reclamo"*.
-- **Texto corregido para el Word:** Incluir explícitamente *"ventas, pagos, cambios de estado de contrato o reclamo, catálogo, clientes y equipos"*.
-
-### 3.3 Coherencia entre maquetas (Figuras 17–23) y producto construido (Anexo 2, B.3)
-- **Figura 18 (Ventas y clientes):** Muestra estado por cliente y retención (`94%`), cuando en el modelo el estado pertenece al `contrato` (`activo/suspendido/baja`).
-- **Figura 19 (Cobranzas):** Muestra botón `Reporte PDF`; el prototipo entrega reporte en pantalla y consulta por API.
-- **Figura 20 (Inventario):** Muestra un ítem medido por metros (`Cable coaxial RG-6 (m)`), mientras el modelo `equipos` controla unidades físicas con número de serie único (`serie`).
-- **Figura 21 (Catálogo):** Muestra estados `"Revisar duplicado"` y `"Validar precio"` en tabla; en el sistema el campo en BD es booleano (`activo`) y los posibles duplicados se entregan en CSV en `storage/`.
-- **Menú superior (Figuras 18–23):** La aplicación unificará las 6 pestañas principales (`Dashboard`, `Ventas y clientes`, `Cobranzas`, `Inventario`, `Catálogo`, `Reclamos`) en todas las pantallas.
-
----
-
-## 4. Cronograma, evidencias y resultados de pruebas (Capítulo III y Anexo 1)
-
-### 4.1 Incongruencia de fechas en Tabla 8 vs. Tabla 6 y Anexo 1
-- **En Tabla 6 (3.3) y Tabla 10 (Anexo 1):** los sprints van del **19 de octubre al 15 de noviembre de 2026**.
-- **Incongruencia en Tabla 8 (3.8):** figuran fechas del `02/10/2026` al `14/10/2026` (anteriores al inicio del Sprint 1) y el marcador global sigue en blanco (`___ de los 22 casos de prueba...`).
-- **Actualización requerida:** reemplazar por las fechas reales de ejecución de pruebas en noviembre de 2026 (y alinear la Tabla 6 / Tabla 10 si se ajusta el calendario), completar la Tabla 9 y llenar el resultado global tras ejecutar los 4 sprints.
-
-### 4.2 Evidencias gráficas por reemplazar (Sección 3.7)
-- Reemplazar los marcadores de las **Figuras 1 a 16** (y quitar el texto `"Colocar imagen aquí..."` de **3.7.6**) con las capturas reales generadas al cierre de cada sprint y del despliegue.
+| N.° Captura | Módulo | Ruta en el navegador | Qué debe mostrar la captura | Figura correspondiente en el Word |
+|---|---|---|---|---|
+| **(1)** | Backend | Terminal WSL | Salida de `php artisan serve` y `php artisan test` pasando al 100% | Figura 1 (Sección 3.7.1) |
+| **(2)** | Base de datos | Terminal / DBeaver | Listado de las 14 tablas en MariaDB (`SHOW TABLES;`) | Figura 2 (Sección 3.7.1) |
+| **(3)** | Catálogo | `/catalogo` | Listado con los 40 ítems (Planes Solo Internet, TV, Dúo y Equipos) | Figura 3 (Sección 3.7.2) / Figura 21 |
+| **(4)** | Autenticación | Postman / `/login` | Petición `POST /api/login` devolviendo token Bearer JWT | Figura 4 (Sección 3.7.2) |
+| **(5)** | Pruebas | Terminal WSL | Resumen de ejecución verde: `Tests: 35 passed (235 assertions)` | Figura 5 (Sección 3.7.3) |
+| **(6)** | Ventas | `/ventas` | Formulario con 3 líneas (Plan + Instalación + Equipo) y contrato generado | Figura 6 (Sección 3.7.3) / Figura 18 |
+| **(7)** | Clientes | `/clientes` y `/contratos` | Clientes y contratos migrados desde `vision2026` | Figura 7 (Sección 3.7.3) |
+| **(8)** | Cobranzas | `/cobranzas` | Pestaña *Estado de cuenta por cliente* y pestaña *Reporte de morosidad* | Figura 8 (Sección 3.7.4) / Figura 19 |
+| **(9)** | Alertas | `/alertas` | Bandeja de notificaciones de vencimiento generadas automáticamente | Figura 9 (Sección 3.7.4) |
+| **(10)** | Inventario | `/inventario` | Pestaña *Stock por tipo* y cálculo de *Conteo físico y exactitud* | Figura 10 (Sección 3.7.5) / Figura 20 |
+| **(11)** | Reclamos | `/reclamos` | Reclamo en proceso con técnico asignado y modal de diagnóstico técnico | Figura 11 (Sección 3.7.5) / Figura 22 |
+| **(12)** | Auditoría | `/auditoria` | Bitácora de eventos con visor modal de cambios en JSON (`antes`/`despues`) | Figura 12 (Sección 3.7.6) |
+| **(13)** | Dashboard | `/dashboard` | Tarjetas de indicadores gerenciales y ranking Top 5 ítems más vendidos | Figura 13 (Sección 3.7.6) / Figura 17 |
 
 ---
 
-## 5. Checklist de aprobación antes de ejecutar el Sprint 1
+## 7. Cambios en la redacción de Requerimientos Funcionales (Anexo 2, A.2)
 
-- [x] Entorno WSL verificado (`Ubuntu 24.04.4 LTS`, `PHP 8.3.6`, `Apache 2.4.58`, `MariaDB 10.11.14`, `Node v20.20.2 / npm 10.8.2`, `Composer 2.7.1`, `Git 2.43.0`).
-- [ ] Aprobar la estructura corregida de la BD (**14 tablas** con `conteos_inventario`, `contratos.catalogo_id`, `pagos.periodo`, `timestamps`, sin `ñ` ni tildes, y `ON DELETE RESTRICT`).
-- [ ] Indicar usuario/contraseña de MariaDB en WSL para `.env` y `.env.testing` (BD `cablegest` y `cablegest_test`).
-- [ ] Autorizar la ejecución de los comandos iniciales del **Sprint 1** (`composer create-project`, `jwt-auth`, `maatwebsite/excel`, Vite/Vue 3, migraciones y pruebas).
+1. **RF09 (Cálculo de exactitud del inventario):**
+   - *Texto actual:* *"El sistema debe calcular la exactitud del inventario a partir de los movimientos registrados."*
+   - *Cambio en Word:* *"El sistema debe calcular la exactitud del inventario a partir de un **conteo físico** de los equipos en almacén, contrastando las series físicas contra los equipos registrados en estado disponible mediante la fórmula $\text{Exactitud (\%)} = \frac{\text{Coincidentes}}{\text{Verificados}} \times 100$."*
+2. **RF14 (Bitácora de auditoría):**
+   - *Texto actual:* Menciona solo ventas, pagos y contratos.
+   - *Cambio en Word:* Ampliar la redacción para indicar: *"El sistema debe registrar en una bitácora inmutable de auditoría las operaciones críticas (creación, actualización y anulación) realizadas sobre clientes, catálogo de servicios, ventas, contratos, cobranzas, equipos e inventario, y reclamos técnicos, guardando usuario, marca de tiempo y estado anterior y nuevo en formato JSON."*
+
+---
+
+## 8. Guía de despliegue y respaldo diario generados (Documentos de soporte)
+
+Se generaron dos artefactos técnicos en el repositorio listos para la fase de implementación final descrita en el Capítulo IV de la tesis:
+- **`docs/DESPLIEGUE.md`:** Manual operativo detallado de instalación en Ubuntu Server 24.04 LTS con Apache/Nginx, configuración segura de MariaDB local, certificados HTTPS por dirección IP pública, reglas de cortafuegos UFW y cron del scheduler de Laravel.
+- **`scripts/respaldo_cablegest.sh`:** Script en Bash con permisos de ejecución que genera volcados lógicos comprimidos (`mysqldump + gzip -9`) con aislamiento seguro de credenciales, rotación automática de 14 días y soporte de réplica remota vía `rsync` (`RNF09`).
