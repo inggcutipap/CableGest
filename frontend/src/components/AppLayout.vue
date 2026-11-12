@@ -10,15 +10,16 @@ const { usuario, cerrarSesion } = useAuth()
 const moduloActual = computed(() => route.meta.modulo || 'clientes')
 
 const navPrincipal = [
+  { id: 'dashboard', etiqueta: 'Dashboard', ruta: '/dashboard', disponible: true },
   { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', disponible: true },
   { id: 'catalogo', etiqueta: 'Catálogo', ruta: '/catalogo', disponible: true },
   { id: 'ventas', etiqueta: 'Ventas', ruta: '/ventas', disponible: true },
   { id: 'contratos', etiqueta: 'Contratos', ruta: '/contratos', disponible: true },
   { id: 'cobranzas', etiqueta: 'Cobranzas', ruta: '/cobranzas', disponible: true },
   { id: 'alertas', etiqueta: 'Alertas', ruta: '/alertas', disponible: true },
-  { id: 'inventario', etiqueta: 'Inventario', ruta: null, disponible: false },
-  { id: 'reclamos', etiqueta: 'Reclamos', ruta: null, disponible: false },
-  { id: 'dashboard', etiqueta: 'Dashboard', ruta: null, disponible: false },
+  { id: 'inventario', etiqueta: 'Inventario', ruta: '/inventario', disponible: true },
+  { id: 'reclamos', etiqueta: 'Reclamos', ruta: '/reclamos', disponible: true },
+  { id: 'auditoria', etiqueta: 'Auditoría', ruta: '/auditoria', disponible: true },
 ]
 
 const navDisponibles = computed(() => navPrincipal.filter((item) => item.disponible))
@@ -35,7 +36,7 @@ const manejarLogout = async () => {
     <header class="bg-[#1e3a5f] text-white shadow-sm">
       <div class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
         <div class="flex items-center gap-8">
-          <RouterLink to="/clientes" class="flex items-center gap-2 font-semibold tracking-tight text-lg">
+          <RouterLink to="/dashboard" class="flex items-center gap-2 font-semibold tracking-tight text-lg">
             <svg class="h-5 w-5 text-amber-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" />
             </svg>
@@ -103,12 +104,14 @@ const manejarLogout = async () => {
           </RouterLink>
         </nav>
 
-        <div class="px-4 mt-8 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Próximos módulos
-        </div>
-        <div class="space-y-1 px-3 text-sm text-slate-400">
-          <p v-for="item in navProximos" :key="item.id" class="py-1">{{ item.etiqueta }}</p>
-        </div>
+        <template v-if="navProximos.length > 0">
+          <div class="px-4 mt-8 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Próximos módulos
+          </div>
+          <div class="space-y-1 px-3 text-sm text-slate-400">
+            <p v-for="item in navProximos" :key="item.id" class="py-1">{{ item.etiqueta }}</p>
+          </div>
+        </template>
       </aside>
 
       <main class="flex-1 p-5 sm:p-8 bg-white">

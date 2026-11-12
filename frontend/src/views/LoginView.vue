@@ -17,7 +17,7 @@ const enviarFormulario = async () => {
 
   try {
     await iniciarSesion(correo.value.trim(), password.value)
-    router.push({ name: 'clientes' })
+    router.push({ name: 'dashboard' })
   } catch (error) {
     mensajeError.value =
       error.response?.data?.message ||

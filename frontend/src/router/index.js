@@ -7,6 +7,10 @@ import VentasView from '../views/VentasView.vue'
 import ContratosView from '../views/ContratosView.vue'
 import CobranzasView from '../views/CobranzasView.vue'
 import AlertasView from '../views/AlertasView.vue'
+import InventarioView from '../views/InventarioView.vue'
+import ReclamosView from '../views/ReclamosView.vue'
+import AuditoriaView from '../views/AuditoriaView.vue'
+import DashboardView from '../views/DashboardView.vue'
 
 const routes = [
   {
@@ -17,7 +21,13 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/clientes',
+    redirect: '/dashboard',
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: DashboardView,
+    meta: { requiresAuth: true, modulo: 'dashboard' },
   },
   {
     path: '/clientes',
@@ -55,6 +65,24 @@ const routes = [
     component: AlertasView,
     meta: { requiresAuth: true, modulo: 'alertas' },
   },
+  {
+    path: '/inventario',
+    name: 'inventario',
+    component: InventarioView,
+    meta: { requiresAuth: true, modulo: 'inventario' },
+  },
+  {
+    path: '/reclamos',
+    name: 'reclamos',
+    component: ReclamosView,
+    meta: { requiresAuth: true, modulo: 'reclamos' },
+  },
+  {
+    path: '/auditoria',
+    name: 'auditoria',
+    component: AuditoriaView,
+    meta: { requiresAuth: true, modulo: 'auditoria' },
+  },
 ]
 
 const router = createRouter({
@@ -80,7 +108,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && estaAutenticado.value) {
-    return { name: 'clientes' }
+    return { name: 'dashboard' }
   }
 
   return true
