@@ -90,8 +90,16 @@ cp .env.testing.example .env.testing
 php artisan test
 ```
 
-Para ejecutar únicamente las pruebas del Sprint 1 o Sprint 2:
+Para ejecutar únicamente las pruebas del Sprint 1, Sprint 2 o Sprint 3:
 ```bash
 php artisan test tests/Feature/Sprint1Test.php
 php artisan test tests/Feature/Sprint2Test.php
+php artisan test tests/Feature/Sprint3Test.php
+```
+
+Comandos operativos de cobranzas (Sprint 3):
+```bash
+php artisan pagos:generar-mes
+php artisan pagos:marcar-vencidos
+php artisan recibos:importar ruta/al/archivo.xlsx
 ```
