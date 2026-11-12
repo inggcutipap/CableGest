@@ -5,6 +5,8 @@ import ClientesView from '../views/ClientesView.vue'
 import CatalogoView from '../views/CatalogoView.vue'
 import VentasView from '../views/VentasView.vue'
 import ContratosView from '../views/ContratosView.vue'
+import CobranzasView from '../views/CobranzasView.vue'
+import AlertasView from '../views/AlertasView.vue'
 
 const routes = [
   {
@@ -40,6 +42,18 @@ const routes = [
     name: 'contratos',
     component: ContratosView,
     meta: { requiresAuth: true, modulo: 'contratos' },
+  },
+  {
+    path: '/cobranzas',
+    name: 'cobranzas',
+    component: CobranzasView,
+    meta: { requiresAuth: true, modulo: 'cobranzas' },
+  },
+  {
+    path: '/alertas',
+    name: 'alertas',
+    component: AlertasView,
+    meta: { requiresAuth: true, modulo: 'alertas' },
   },
 ]
 
