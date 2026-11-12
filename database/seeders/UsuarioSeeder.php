@@ -12,12 +12,34 @@ class UsuarioSeeder extends Seeder
      */
     public function run(): void
     {
+        $claveInicial = env('ADMIN_SEED_PASSWORD', 'CableGest2026!');
+
         Usuario::updateOrCreate(
             ['correo' => 'admin@cablevision.pe'],
             [
                 'nombre' => 'Administrador CableGest',
-                'password' => env('ADMIN_SEED_PASSWORD', 'CableGest2026!'),
+                'password' => $claveInicial,
                 'rol' => 'administrador',
+                'activo' => true,
+            ]
+        );
+
+        Usuario::updateOrCreate(
+            ['correo' => 'operador@cablevision.pe'],
+            [
+                'nombre' => 'Operador Atencion',
+                'password' => $claveInicial,
+                'rol' => 'operador',
+                'activo' => true,
+            ]
+        );
+
+        Usuario::updateOrCreate(
+            ['correo' => 'tecnico@cablevision.pe'],
+            [
+                'nombre' => 'Tecnico Campo 1',
+                'password' => $claveInicial,
+                'rol' => 'tecnico',
                 'activo' => true,
             ]
         );
