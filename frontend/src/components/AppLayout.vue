@@ -12,7 +12,8 @@ const moduloActual = computed(() => route.meta.modulo || 'clientes')
 const navPrincipal = [
   { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', disponible: true },
   { id: 'catalogo', etiqueta: 'Catálogo', ruta: '/catalogo', disponible: true },
-  { id: 'ventas', etiqueta: 'Ventas', ruta: null, disponible: false },
+  { id: 'ventas', etiqueta: 'Ventas', ruta: '/ventas', disponible: true },
+  { id: 'contratos', etiqueta: 'Contratos', ruta: '/contratos', disponible: true },
   { id: 'cobranzas', etiqueta: 'Cobranzas', ruta: null, disponible: false },
   { id: 'inventario', etiqueta: 'Inventario', ruta: null, disponible: false },
   { id: 'reclamos', etiqueta: 'Reclamos', ruta: null, disponible: false },
@@ -80,7 +81,7 @@ const manejarLogout = async () => {
     <div class="flex flex-1 mx-auto w-full max-w-7xl">
       <aside class="w-56 shrink-0 border-r border-slate-200 bg-white py-6 hidden lg:block">
         <div class="px-4 mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Sprint 1 · Base
+          Operación disponible
         </div>
         <nav class="space-y-1 px-2">
           <RouterLink
@@ -105,13 +106,34 @@ const manejarLogout = async () => {
           >
             <span>Catálogo de servicios</span>
           </RouterLink>
+          <RouterLink
+            to="/ventas"
+            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors"
+            :class="
+              moduloActual === 'ventas'
+                ? 'bg-[#ebf2fb] font-semibold text-[#1e3a5f] border-l-4 border-[#1e3a5f]'
+                : 'text-slate-600 hover:bg-slate-100'
+            "
+          >
+            <span>Ventas</span>
+          </RouterLink>
+          <RouterLink
+            to="/contratos"
+            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors"
+            :class="
+              moduloActual === 'contratos'
+                ? 'bg-[#ebf2fb] font-semibold text-[#1e3a5f] border-l-4 border-[#1e3a5f]'
+                : 'text-slate-600 hover:bg-slate-100'
+            "
+          >
+            <span>Contratos</span>
+          </RouterLink>
         </nav>
 
         <div class="px-4 mt-8 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
           Próximos módulos
         </div>
         <div class="space-y-1 px-3 text-sm text-slate-400">
-          <p class="py-1">Ventas y contratos</p>
           <p class="py-1">Cobranzas y alertas</p>
           <p class="py-1">Inventario y equipos</p>
           <p class="py-1">Reclamos técnicos</p>
@@ -120,7 +142,7 @@ const manejarLogout = async () => {
       </aside>
 
       <main class="flex-1 p-5 sm:p-8 bg-white">
-        <div class="mb-4 flex gap-2 lg:hidden">
+        <div class="mb-4 flex flex-wrap gap-2 lg:hidden">
           <RouterLink
             to="/clientes"
             class="rounded-lg px-3 py-1.5 text-sm font-medium border"
@@ -135,9 +157,24 @@ const manejarLogout = async () => {
           >
             Catálogo
           </RouterLink>
+          <RouterLink
+            to="/ventas"
+            class="rounded-lg px-3 py-1.5 text-sm font-medium border"
+            :class="moduloActual === 'ventas' ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : 'bg-white text-slate-700 border-slate-300'"
+          >
+            Ventas
+          </RouterLink>
+          <RouterLink
+            to="/contratos"
+            class="rounded-lg px-3 py-1.5 text-sm font-medium border"
+            :class="moduloActual === 'contratos' ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : 'bg-white text-slate-700 border-slate-300'"
+          >
+            Contratos
+          </RouterLink>
         </div>
         <slot />
       </main>
     </div>
   </div>
 </template>
+

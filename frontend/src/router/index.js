@@ -3,6 +3,8 @@ import { useAuth } from '../composables/useAuth'
 import LoginView from '../views/LoginView.vue'
 import ClientesView from '../views/ClientesView.vue'
 import CatalogoView from '../views/CatalogoView.vue'
+import VentasView from '../views/VentasView.vue'
+import ContratosView from '../views/ContratosView.vue'
 
 const routes = [
   {
@@ -26,6 +28,18 @@ const routes = [
     name: 'catalogo',
     component: CatalogoView,
     meta: { requiresAuth: true, modulo: 'catalogo' },
+  },
+  {
+    path: '/ventas',
+    name: 'ventas',
+    component: VentasView,
+    meta: { requiresAuth: true, modulo: 'ventas' },
+  },
+  {
+    path: '/contratos',
+    name: 'contratos',
+    component: ContratosView,
+    meta: { requiresAuth: true, modulo: 'contratos' },
   },
 ]
 
@@ -59,3 +73,4 @@ router.beforeEach(async (to) => {
 })
 
 export default router
+
