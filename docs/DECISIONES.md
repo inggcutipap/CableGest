@@ -14,3 +14,13 @@ Registro breve de las decisiones arquitectónicas y de diseño tomadas durante e
 8. **Observer reutilizable de auditoría (`AuditoriaObserver`):** Permite `usuario_id = null` en consola/seeders, excluye `password` y timestamps de ruido, y registra `antes`/`despues` en JSON sobre `auditoria`.
 9. **Frontend SPA en `frontend/` con Vue 3 + Vite 7 + Tailwind CSS v4:** Configurado sin librerías de interfaz externas, usando proxy `/api` en desarrollo y respetando la paleta `#1e3a5f` y `#f5f4ee` de las maquetas; CORS restringido a `FRONTEND_URL`.
 10. **Exclusión de binarios y datos sensibles en `.gitignore`:** Se excluyen `.env`, `.env.testing`, `*.xlsx`, `*.xls`, `*.docx`, `*.sql`, `*.csv` en `storage/` y `frontend/dist` para no versionar datos reales ni credenciales.
+
+## Sprint 2 — Ventas, contratos y migración de cartera
+
+11. **Transacción atómica en ventas (`VentaService`):** Toda venta valida ítems activos, congela `precio_unitario` del catálogo, calcula `subtotal` y `monto_total`, y crea automáticamente un `Contrato` (`CG-NNNNNN`, `estado = activo`) por cada línea de tipo plan (`plan_internet`, `plan_tv`, `plan_combo`) dentro de `DB::transaction`.
+12. **Regla de anulación lógica alineada al sistema VB6 (`frmContratos.frm`):** Al anular una venta (`estado = anulada`), sus contratos asociados pasan a `baja`; sin embargo, si alguno ya tiene pagos no anulados registrados (equivalente a `regrecibosdet` en VB6), la anulación se bloquea con HTTP 422 y tampoco se permite reactivar contratos de ventas anuladas.
+13. **Auditoría en ventas y contratos:** Se registra `AuditoriaObserver` sobre `Venta` y `Contrato`, guardando acción `crear`, `actualizar` y `anular` (cuando `ventas.estado` pasa a `anulada`) con detalle `antes`/`despues`.
+14. **Importador Excel de cartera (`cartera:importar`):** Valida DNI numérico de 8 dígitos, rechaza duplicados dentro del mismo archivo (y filas con plan inexistente), opera de forma repetible (`updateOrCreate`) y genera el reporte `storage/cartera_rechazados.csv` sin exponer datos personales en consola.
+15. **Extractor temporal desde `vision2026` (`vision2026:migrar`) y mejora del clasificador:** Lee en modo solo lectura desde variables `LEGACY_DB_*`, amplía `CatalogoClasificador` para reconocer velocidades en `MG`/`MB` y planes `DUO`, migra en lotes idempotentes sin eventos masivos de auditoría (respetando Ley N.° 29733), y registra en `storage/vision2026_rechazados.csv` los registros con RUC o códigos distintos de 8 dígitos.
+
+

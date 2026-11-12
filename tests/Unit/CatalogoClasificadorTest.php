@@ -16,6 +16,8 @@ class CatalogoClasificadorTest extends TestCase
         $this->assertSame('equipo', $clasificador->clasificarTipo('ONU GEPON DUAL BAND'));
         $this->assertSame('equipo', $clasificador->clasificarTipo('VENTA DE EQUIPOS ROUTER'));
         $this->assertSame('plan_combo', $clasificador->clasificarTipo('TELEVISION POR CABLE + INTERNET DE 60 MBPS'));
+        $this->assertSame('plan_combo', $clasificador->clasificarTipo('DUO TV CABLE INTERNET'));
+        $this->assertSame('equipo', $clasificador->clasificarTipo('TP link (caja x unidad)'));
         $this->assertSame('plan_tv', $clasificador->clasificarTipo('TELEVISION POR CABLE BASICO'));
         $this->assertSame('plan_internet', $clasificador->clasificarTipo('INTERNET DE 100 MBPS EMPRESARIAL'));
 
@@ -25,6 +27,7 @@ class CatalogoClasificadorTest extends TestCase
         $this->assertNull($clasificador->detectarSegmento('RECONEXION', 'cargo_unico'));
 
         $this->assertSame(60, $clasificador->extraerVelocidadMbps('TELEVISION POR CABLE + INTERNET DE 60 MBPS', 'plan_combo'));
+        $this->assertSame(80, $clasificador->extraerVelocidadMbps('SOLO INTERNET 80 MG', 'plan_internet'));
         $this->assertNull($clasificador->extraerVelocidadMbps('TELEVISION POR CABLE', 'plan_tv'));
     }
 }

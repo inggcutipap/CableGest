@@ -45,6 +45,14 @@ php artisan catalogo:importar /ruta/al/catalogo.xlsx
 - Conserva ceros a la izquierda en `codigo_interno` y es repetible sin duplicar registros.
 - No desactiva automáticamente posibles duplicados: genera un informe en `storage/catalogo_duplicados.csv` para revisión manual.
 
+### 3.1 Carga de clientes y contratos (Excel o migración `vision2026`)
+- **Desde Excel/CSV depurado:**
+  ```bash
+  php artisan cartera:importar /ruta/al/cartera.xlsx
+  ```
+  Valida DNI numérico de 8 dígitos sin duplicados, vincula contratos con `catalogo_servicios` y exporta filas rechazadas a `storage/cartera_rechazados.csv`.
+- **Migración temporal desde `vision2026` (solo lectura):** mediante variables de entorno `LEGACY_DB_HOST`, `LEGACY_DB_USER`, `LEGACY_DB_PASS` y `LEGACY_DB_NAME`, ejecuta `php artisan vision2026:migrar` para extraer `mitm`, `ccte` y `regcontratos` dejando constancia de rechazados en `storage/vision2026_rechazados.csv`.
+
 ### 4. Frontend (Vue.js 3 + Vite + Tailwind CSS)
 ```bash
 cd frontend
@@ -56,17 +64,18 @@ npm install
 
 ## Cómo correr el sistema en desarrollo
 
-Abre dos terminales en WSL:
+En una **única terminal WSL** (dejando el prompt libre para otros comandos):
 
-1. **API Laravel (puerto 8000):**
-   ```bash
-   php artisan serve
-   ```
-2. **Interfaz Vue 3 (puerto 5173):**
-   ```bash
-   cd frontend
-   npm run dev
-   ```
+```bash
+cd /var/www/html/CableGest
+php artisan serve > /tmp/laravel.log 2>&1 &
+npm --prefix frontend run dev > /tmp/vite.log 2>&1 &
+```
+
+Para apagar ambos servidores:
+```bash
+pkill -f "php artisan serve"; pkill -f "127.0.0.1:8000"; pkill -f "vite"
+```
 
 Accede desde el navegador a `http://localhost:5173`.
 
@@ -81,7 +90,8 @@ cp .env.testing.example .env.testing
 php artisan test
 ```
 
-Para ejecutar únicamente las pruebas del Sprint 1 (`CP01`–`CP06` e importación):
+Para ejecutar únicamente las pruebas del Sprint 1 o Sprint 2:
 ```bash
 php artisan test tests/Feature/Sprint1Test.php
+php artisan test tests/Feature/Sprint2Test.php
 ```
